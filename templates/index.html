@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HonestBroker — Uncompromising Real-Market Simulation Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- TradingView Lightweight Charts CDN -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="/static/css/terminal.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="terminal-header">
+    <div class="brand-group">
+      <div class="brand-badge">⚡</div>
+      <div class="brand-info">
+        <div class="brand-title">HonestBroker <span class="badge-tag">Zero-Simulation Proxy</span></div>
+        <div class="brand-desc">Real Spreads · Live Slippage · Taker Fees · Hard Stop-Loss Auditing</div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="symbol-pill">
+        <span class="symbol-name" id="current-symbol">SOLUSDT</span>
+        <span class="exchange-tag">BINANCE PUBLIC TAPE</span>
+      </div>
+      <div class="live-price-box">
+        <span class="price-label">LIVE ASK / BID</span>
+        <span class="price-value" id="header-ltp">---</span>
+        <span class="spread-tag" id="header-spread">Spread: 0.00</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-text">FEED ACTIVE</span>
+      </div>
+      <button class="btn-refresh" id="btn-refresh-data" title="Refresh Live State">↻</button>
+    </div>
+  </header>
+
+  <!-- Metrics HUD -->
+  <section class="metrics-hud">
+    <div class="hud-card">
+      <div class="hud-label">WALLET BALANCE</div>
+      <div class="hud-val" id="hud-balance">$100.00</div>
+      <div class="hud-sub" id="hud-equity">Equity: $100.00</div>
+    </div>
+
+    <div class="hud-card">
+      <div class="hud-label">NET REALIZED PNL</div>
+      <div class="hud-val text-neutral" id="hud-pnl">$0.00</div>
+      <div class="hud-sub" id="hud-total-trades">0 closed trades</div>
+    </div>
+
+    <div class="hud-card">
+      <div class="hud-label">BRUTAL WIN RATE</div>
+      <div class="hud-val" id="hud-winrate">0.0%</div>
+      <div class="hud-sub" id="hud-win-loss-ratio">0 Wins · 0 Losses</div>
+    </div>
+
+    <div class="hud-card">
+      <div class="hud-label">PROFIT FACTOR</div>
+      <div class="hud-val" id="hud-profit-factor">1.00</div>
+      <div class="hud-sub" id="hud-drawdown">Max DD: 0.0%</div>
+    </div>
+
+    <div class="hud-card">
+      <div class="hud-label">EXCHANGE FEES PAID</div>
+      <div class="hud-val text-amber" id="hud-fees">$0.0000</div>
+      <div class="hud-sub">0.05% Taker Fee / Side</div>
+    </div>
+  </section>
+
+  <!-- Main Workstation Layout -->
+  <main class="terminal-main">
+    
+    <!-- Left: Charts Column -->
+    <div class="chart-column">
+      <div class="panel-card chart-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📈 Live Candlestick Tape</span>
+            <span class="panel-subtitle">Visual Order Entries, Stops & Target Fills</span>
+          </div>
+          <div class="chart-controls">
+            <span class="legend-badge legend-buy">▲ BUY Entry</span>
+            <span class="legend-badge legend-sell">▼ SELL Entry</span>
+            <span class="legend-badge legend-sl">╌ SL Line</span>
+            <span class="legend-badge legend-tp">╌ TP Line</span>
+          </div>
+        </div>
+        <div class="chart-container" id="candlestick-chart"></div>
+      </div>
+
+      <div class="panel-card equity-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📉 Mathematical Equity Curve</span>
+            <span class="panel-subtitle">Transparent account growth & drawdowns</span>
+          </div>
+        </div>
+        <div class="equity-chart-container" id="equity-chart"></div>
+      </div>
+    </div>
+
+    <!-- Right: Controls & Active State -->
+    <div class="sidebar-column">
+      
+      <!-- Order Execution Form -->
+      <div class="panel-card order-panel">
+        <div class="panel-header">
+          <div class="panel-title">⚡ Honest Order Desk</div>
+        </div>
+        <form id="order-form" class="order-form">
+          <div class="form-row">
+            <label>Action</label>
+            <div class="side-selector">
+              <button type="button" class="btn-side btn-buy active" id="btn-side-buy">BUY / LONG</button>
+              <button type="button" class="btn-side btn-sell" id="btn-side-sell">SELL / SHORT</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>Quantity (SOL)</label>
+            <input type="number" id="order-qty" value="2" step="1" min="1" max="100">
+          </div>
+
+          <div class="form-row">
+            <label>Take Profit ($)</label>
+            <input type="number" id="order-tp" placeholder="e.g. +$0.20 above entry" step="0.01">
+          </div>
+
+          <div class="form-row">
+            <label>Stop Loss ($)</label>
+            <input type="number" id="order-sl" placeholder="e.g. -$0.20 below entry" step="0.01">
+          </div>
+
+          <button type="submit" class="btn-submit-order" id="btn-place-order">PLACE HONEST ORDER</button>
+        </form>
+
+        <div class="agent-control-box">
+          <div class="agent-label">🤖 Autonomous Scalper Bot</div>
+          <div class="agent-desc">Runs real momentum scalp, takes losses on adverse ticks.</div>
+          <button type="button" class="btn-agent" id="btn-trigger-agent">RUN BOT TRADE (AUTO-EXIT)</button>
+        </div>
+      </div>
+
+      <!-- Open Positions -->
+      <div class="panel-card positions-panel">
+        <div class="panel-header">
+          <div class="panel-title">🎯 Open Positions</div>
+        </div>
+        <div class="positions-list" id="positions-list">
+          <div class="empty-state">No open positions. Ready for next order.</div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Bottom: Honest Audit Tradebook -->
+  <footer class="terminal-footer">
+    <div class="panel-card tradebook-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>📜 Transparent Trade Ledger (Every Win & Loss Audited)</span>
+        </div>
+        <button class="btn-export" id="btn-reset-demo" title="Reset to Initial Capital">Reset Account ($100)</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="honest-table">
+          <thead>
+            <tr>
+              <th>Trade ID</th>
+              <th>Time (UTC)</th>
+              <th>Side</th>
+              <th>Qty</th>
+              <th>Entry Fill</th>
+              <th>Exit Fill</th>
+              <th>Slippage</th>
+              <th>Exchange Fee</th>
+              <th>Net PnL ($)</th>
+              <th>Exit Reason</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody id="trade-log-body">
+            <tr>
+              <td colspan="11" class="empty-state">No trades executed yet. Place an order to start the audit.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/terminal.js"></script>
+</body>
+</html>
