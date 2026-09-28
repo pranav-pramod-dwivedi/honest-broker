@@ -17,6 +17,7 @@ from honest_core.market_feed import MarketFeed
 from honest_core.matching_engine import HonestMatchingEngine
 from honest_core.account_manager import HonestAccountManager
 from honest_core.order_types import Order
+from honest_core.validation import validate_order_inputs
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
@@ -139,8 +140,10 @@ def get_state():
 def place_order():
     data = request.json or {}
     symbol = data.get("symbol", "SOLUSDT").upper()
-    action = data.get("action", "BUY").upper()
-    quantity = float(data.get("quantity", 2.0))
+    try:
+        action, quantity = validate_order_inputs(data.get("action", "BUY"), data.get("quantity", 2.0))
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
     sl = float(data.get("stop_loss")) if data.get("stop_loss") else None
     tp = float(data.get("take_profit")) if data.get("take_profit") else None
 
